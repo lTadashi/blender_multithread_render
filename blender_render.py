@@ -2,6 +2,8 @@ import threading
 import sys
 import subprocess
 import os
+from os import listdir
+from os.path import isfile
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter.simpledialog import askstring
@@ -10,6 +12,11 @@ from tkinter.filedialog import askdirectory
 
 def render(blender, ffmpeg, output_dir, blender_project, start, finish):
     subprocess.run(blender + " -b " + blender_project + " -E BLENDER_RENDER -s " + str(start) + " -e " + str(finish) + " -a")
+
+def getint(name):
+    basename = name.partition('.')
+    alpha, num = basename.split('-')
+    return int(num)
 
 root = Tk()
 root.withdraw()
@@ -41,16 +48,21 @@ try:
     for t in threads:
         t.join()
 
-    file = open(os.path.normcase(os.path.join(output_dir, "render.txt")), "w")
-    files = []
-    for (dirpath, dirnames, filenames) in os.walk(output_dir):
-        files.extend(filenames)
-        break
+	file = open(os.path.normcase(os.path.join(output_dir, "render.txt")), "w")
+	files = []
+	for (dirpath, dirnames, filenames) in os.walk(output_dir):
+	    files.extend(filenames)
+	    break
 
-    for f in files:
-        if f != "render.txt":
-            file.write("file '" + os.path.normcase(os.path.join(output_dir,f)) + "'\n")
-    
-    subprocess.run(ffmpeg + " -f concat -i " + os.path.realpath(file.name).replace('\\', '/') + " -c copy " + os.path.normcase(os.path.join(final_file_dir, "output.avi")).replace('\\', '/'))
+	files.sort()
+
+	for f in files:
+	    if f != "render.txt":
+	        file.write("file '" + f + "'\n")
+
+	filepath = os.path.normcase(os.path.realpath(file.name))
+	file.close()
+
+	subprocess.run(ffmpeg + " -f concat -safe 0 -i " + filepath.replace('\\', '/') + " -c copy " + os.path.normcase(os.path.join(final_file_dir, "output.avi")).replace('\\', '/'))
 except:
     print("Error")
